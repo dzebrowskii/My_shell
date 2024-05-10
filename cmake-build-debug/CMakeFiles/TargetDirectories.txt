@@ -1,3 +1,3 @@
-/home/dominik/CLionProjects/Projekt_so/cmake-build-debug/CMakeFiles/projekt_so.dir
-/home/dominik/CLionProjects/Projekt_so/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/dominik/CLionProjects/Projekt_so/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/dominik/CLionProjects/Projekt_so_bedzie_dzialac/cmake-build-debug/CMakeFiles/projekt_so.dir
+/home/dominik/CLionProjects/Projekt_so_bedzie_dzialac/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/dominik/CLionProjects/Projekt_so_bedzie_dzialac/cmake-build-debug/CMakeFiles/rebuild_cache.dir
