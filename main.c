@@ -13,6 +13,7 @@ void execute_with_pipe(char *first_cmd[], char *second_cmd[]);
 void append_command_to_history(const char *command);
 void sigquit_handler(int sig);
 int check_cd_command(char *args[]);
+int check_touch_command(char *args[]);
 
 int main() {
     char *line = NULL;
@@ -57,7 +58,8 @@ int main() {
             args[--arg_count] = NULL;
         }
 
-        if (!check_cd_command(args)) {
+        // Najpierw sprawdź `touch`, potem `cd`
+        if (!check_touch_command(args) && !check_cd_command(args)) {
             execute_command(args, background);
         }
     }
@@ -65,6 +67,7 @@ int main() {
     free(line); // Zwolnienie pamięci zaalokowanej przez getline
     return 0;
 }
+
 
 int check_cd_command(char *args[]) {
     if (strcmp(args[0], "cd") == 0) {
@@ -113,50 +116,72 @@ void execute_command(char *args[], int background) {
             exit(EXIT_FAILURE);
         }
     } else if (pid > 0) { // Proces rodzica
+        int status;
         if (!background) {
-            waitpid(pid, NULL, 0); // Czekaj na zakończenie procesu dziecka, jeśli nie jest w tle
+            waitpid(pid, &status, 0); // Czekaj na zakończenie procesu dziecka, jeśli nie jest w tle
+            if (WIFEXITED(status)) {
+                printf("Kod powrotu: %d\n", WEXITSTATUS(status));
+            }
         }
     } else {
         perror("fork"); // Nie udało się utworzyć procesu
     }
 }
 
-void execute_with_pipe(char *first_cmd[], char *second_cmd[]) {
-    int pipe_fd[2]; // Deskryptory plików dla potoku: [0] do odczytu, [1] do zapisu
-    if (pipe(pipe_fd) == -1) {
-        perror("pipe");
-        exit(EXIT_FAILURE);
+
+void execute_piped_commands(char *commands[], int num_commands) {
+    int num_pipes = num_commands - 1;
+    int pipe_fd[2 * num_pipes];
+
+    // Tworzenie wszystkich potoków
+    for (int i = 0; i < num_pipes; i++) {
+        if (pipe(pipe_fd + 2 * i) < 0) {
+            perror("pipe");
+            exit(EXIT_FAILURE);
+        }
     }
 
-    pid_t pid1 = fork();
-    if (pid1 == 0) { // Proces dziecka nr 1
-        close(pipe_fd[0]); // Zamknięcie niepotrzebnego końca odczytu
-        dup2(pipe_fd[1], STDOUT_FILENO); // Przekierowanie STDOUT do końca zapisu potoku
-        close(pipe_fd[1]); // Zamknięcie oryginalnego deskryptora zapisu potoku
+    for (int i = 0; i < num_commands; i++) {
+        pid_t pid = fork();
+        if (pid == 0) { // Proces dziecka
+            if (i > 0) { // Nie pierwszy proces: podłącz do potoku z poprzednim procesem
+                dup2(pipe_fd[2 * (i - 1)], STDIN_FILENO);
+            }
+            if (i < num_pipes) { // Nie ostatni proces: podłącz do potoku z następnym procesem
+                dup2(pipe_fd[2 * i + 1], STDOUT_FILENO);
+            }
 
-        execvp(first_cmd[0], first_cmd);
-        perror("execvp first command");
-        exit(EXIT_FAILURE);
+            // Zamknij wszystkie deskryptory w potoku
+            for (int j = 0; j < 2 * num_pipes; j++) {
+                close(pipe_fd[j]);
+            }
+
+            // Podziel polecenie na argumenty i wykonaj je
+            char *args[MAX_LINE_LENGTH / 2 + 1];
+            int arg_count = 0;
+            char *token = strtok(commands[i], " ");
+            while (token != NULL) {
+                args[arg_count++] = token;
+                token = strtok(NULL, " ");
+            }
+            args[arg_count] = NULL;
+
+            if (execvp(args[0], args) < 0) {
+                perror("execvp");
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
-    pid_t pid2 = fork();
-    if (pid2 == 0) { // Proces dziecka nr 2
-        close(pipe_fd[1]); // Zamknięcie niepotrzebnego końca zapisu
-        dup2(pipe_fd[0], STDIN_FILENO); // Przekierowanie STDIN do końca odczytu potoku
-        close(pipe_fd[0]); // Zamknięcie oryginalnego deskryptora odczytu potoku
-
-        execvp(second_cmd[0], second_cmd);
-        perror("execvp second command");
-        exit(EXIT_FAILURE);
+    // Zamknij wszystkie deskryptory w procesie rodzica
+    for (int i = 0; i < 2 * num_pipes; i++) {
+        close(pipe_fd[i]);
     }
 
-    // Zamknięcie obu końców potoku w procesie rodzica
-    close(pipe_fd[0]);
-    close(pipe_fd[1]);
-
-    // Czekanie na zakończenie obu procesów dziecka
-    waitpid(pid1, NULL, 0);
-    waitpid(pid2, NULL, 0);
+    // Czekaj na zakończenie wszystkich procesów
+    for (int i = 0; i < num_commands; i++) {
+        wait(NULL);
+    }
 }
 
 void append_command_to_history(const char *command) {
@@ -205,6 +230,25 @@ void sigquit_handler(int sig) {
 
     free(line);
     fclose(file);
+}
+
+int check_touch_command(char *args[]) {
+    if (strcmp(args[0], "touch") == 0) {
+        if (args[1] == NULL) {
+            fprintf(stderr, "touch: argument expected\n");
+        } else {
+            for (int i = 1; args[i] != NULL; i++) {
+                int fd = open(args[i], O_WRONLY | O_CREAT, 0644);
+                if (fd < 0) {
+                    perror("touch");
+                } else {
+                    close(fd);
+                }
+            }
+        }
+        return 1; // Potwierdzenie, że polecenie zostało obsłużone
+    }
+    return 0;
 }
 
 // zrobic touch!!
