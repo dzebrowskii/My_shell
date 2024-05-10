@@ -266,4 +266,4 @@ int check_touch_command(char *args[]) {
     }
     return 0;
 }
-# d
+
