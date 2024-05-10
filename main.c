@@ -9,7 +9,7 @@
 #define MAX_LINE_LENGTH 1024
 
 void execute_command(char *args[], int background);
-void execute_with_pipe(char *first_cmd[], char *second_cmd[]);
+void execute_piped_commands(char *commands[], int num_commands);
 void append_command_to_history(const char *command);
 void sigquit_handler(int sig);
 int check_cd_command(char *args[]);
@@ -32,35 +32,50 @@ int main() {
             break; // Koniec pliku (EOF)
         }
 
-        // Usuwamy znak nowej linii na końcu
         if (line[line_size - 1] == '\n') {
             line[line_size - 1] = '\0';
         }
 
         append_command_to_history(line); // Zapisz polecenie do historii
 
-        int arg_count = 0;
-        char *token = strtok(line, " ");
-        while (token != NULL) {
-            args[arg_count++] = token;
-            token = strtok(NULL, " ");
-        }
-        args[arg_count] = NULL; // Ostatni element musi być NULL dla execvp
+        // Sprawdź, czy linia zawiera znak `|`
+        if (strchr(line, '|') != NULL) {
+            // Podziel linię na polecenia
+            char *commands[MAX_LINE_LENGTH / 2 + 1];
+            int num_commands = 0;
+            char *token = strtok(line, "|");
+            while (token != NULL) {
+                commands[num_commands++] = token;
+                token = strtok(NULL, "|");
+            }
 
-        if (arg_count == 0) {
-            continue; // Pusta linia
-        }
+            // Wykonaj potok poleceń
+            execute_piped_commands(commands, num_commands);
+        } else {
+            // Podziel linię na słowa (argumenty)
+            int arg_count = 0;
+            char *token = strtok(line, " ");
+            while (token != NULL) {
+                args[arg_count++] = token;
+                token = strtok(NULL, " ");
+            }
+            args[arg_count] = NULL; // Ostatni element musi być NULL dla execvp
 
-        // Sprawdzenie, czy ostatni argument to '&'
-        background = 0;
-        if (strcmp(args[arg_count - 1], "&") == 0) {
-            background = 1;
-            args[--arg_count] = NULL;
-        }
+            if (arg_count == 0) {
+                continue; // Pusta linia
+            }
 
-        // Najpierw sprawdź `touch`, potem `cd`
-        if (!check_touch_command(args) && !check_cd_command(args)) {
-            execute_command(args, background);
+            // Sprawdź, czy ostatni argument to '&'
+            background = 0;
+            if (strcmp(args[arg_count - 1], "&") == 0) {
+                background = 1;
+                args[--arg_count] = NULL;
+            }
+
+            // Najpierw sprawdź `touch`, potem `cd`
+            if (!check_touch_command(args) && !check_cd_command(args)) {
+                execute_command(args, background);
+            }
         }
     }
 
@@ -251,5 +266,3 @@ int check_touch_command(char *args[]) {
     return 0;
 }
 
-// zrobic touch!!
-// wszystko co jest w /bin
