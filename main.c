@@ -7,6 +7,7 @@
 #include <signal.h>
 
 #define MAX_LINE_LENGTH 1024
+#define HISTORY_SIZE 20
 
 void execute_command(char *args[], int background);
 void execute_piped_commands(char *commands[], int num_commands);
@@ -14,6 +15,16 @@ void append_command_to_history(const char *command);
 void sigquit_handler(int sig);
 int check_cd_command(char *args[]);
 int check_touch_command(char *args[]);
+void trim_history_file(const char *history_file_path);
+
+const char *get_home_directory() {
+    const char *home_directory = getenv("HOME");
+    if (home_directory == NULL) {
+        perror("getenv");
+        exit(EXIT_FAILURE);
+    }
+    return home_directory;
+}
 
 int main() {
     char *line = NULL;
@@ -200,12 +211,7 @@ void execute_piped_commands(char *commands[], int num_commands) {
 }
 
 void append_command_to_history(const char *command) {
-    const char *home_directory = getenv("HOME"); // Pobierz ścieżkę do katalogu domowego
-    if (home_directory == NULL) {
-        perror("getenv");
-        exit(EXIT_FAILURE);
-    }
-
+    const char *home_directory = get_home_directory();
     char history_file_path[256];
     snprintf(history_file_path, sizeof(history_file_path), "%s/.my_shell_history", home_directory);
 
@@ -217,15 +223,48 @@ void append_command_to_history(const char *command) {
 
     fprintf(file, "%s\n", command); // Dopisz polecenie do pliku historii
     fclose(file);
+
+    trim_history_file(history_file_path);
+}
+
+void trim_history_file(const char *history_file_path) {
+    FILE *file = fopen(history_file_path, "r");
+    if (file == NULL) {
+        perror("fopen");
+        return;
+    }
+
+    // Wczytaj wszystkie polecenia
+    char *lines[HISTORY_SIZE];
+    size_t lens[HISTORY_SIZE] = {0};
+    ssize_t read;
+    int count = 0;
+
+    while ((read = getline(&lines[count], &lens[count], file)) != -1) {
+        if (++count >= HISTORY_SIZE) {
+            break;
+        }
+    }
+
+    fclose(file);
+
+    // Zapisz z powrotem tylko ostatnie 20 komend
+    file = fopen(history_file_path, "w");
+    if (file == NULL) {
+        perror("fopen");
+        return;
+    }
+
+    for (int i = 0; i < count; i++) {
+        fprintf(file, "%s", lines[i]);
+        free(lines[i]);
+    }
+
+    fclose(file);
 }
 
 void sigquit_handler(int sig) {
-    const char *home_directory = getenv("HOME");
-    if (home_directory == NULL) {
-        perror("getenv");
-        exit(EXIT_FAILURE);
-    }
-
+    const char *home_directory = get_home_directory();
     char history_file_path[256];
     snprintf(history_file_path, sizeof(history_file_path), "%s/.my_shell_history", home_directory);
 
