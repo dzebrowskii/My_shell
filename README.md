@@ -29,9 +29,101 @@ make
 
 ## Testowanie projektu
 ### Skrypty do testowania
+#### Skrypt nr 1: Testowanie podstawowych poleceń (test_basic_commands.sh)
+
+#!/home/student/moj_shell
+
+ls
+
+ls -a
+
+echo "Wyświetlam aktualny katalog:"
+
+pwd
+
+echo "Lista użytkowników:"
+
+who
+
+
+#### Skrypt nr 2: Testowanie działania funkcji cd (test_cd_command.sh)
+
+#!/home/student/moj_shell
+
+echo "Aktualny katalog:"
+
+pwd
+
+cd ..
+
+echo "Katalog po zmianie:"
+
+pwd
+
+cd /tmp
+
+echo "Katalog po zmianie na /tmp:"
+
+pwd
+
+#### Skrypt nr 3: Działanie skryptu w tle (test_background.sh)
+
+#!/home/student/moj_shell
+
+echo "Uruchamianie sleep na 10 sekund w tle"
+
+sleep 10 &
+
+echo "Uruchamiam ls:"
+
+ls
+
+#### Skrypt nr 4: Przekierowanie wyjścia (test_redirection.sh)
+
+#!/home/student/moj_shell
+
+echo "Zapisuje listę plików do pliku files.txt"
+
+ls > files.txt
+
+echo "Zawartość pliku files.txt:"
+
+cat files.txt
+
+#### Skrypt nr 5: Tworzenie potoków dowolnej długości (test_pipes.sh)
+
+#!/home/student/moj_shell
+
+echo "Połączenie kilku poleceń w potok:"
+
+ls -l | grep ".txt" | sort
+
+#### Skrypt nr 6: Polecenie touch, nano, cat (test_file_operations.sh)
+
+#!/home/student/moj_shell
+
+echo "Tworzę nowy plik tekstowy"
+
+touch testfile.txt
+
+echo "Edytuję plik w nano (zamknij, aby kontynuować)"
+
+nano testfile.txt
+
+echo "Wyświetlam zawartość pliku testfile.txt"
+
+cat testfile.txt
+
+#### Skrypt nr 7: Wyświetlenie historii poleceń (test_history.sh)
+
+#!/home/student/moj_shell
+
+echo "Wysyłam sygnał SIGQUIT do shella, aby wyświetlić historię"
+
+kill -SIGQUIT $$
 
 ### Sposób uruchamiania skryptów
 
-Aby uruchomić którykolwiek ze skryptów, zapisz go jako plik .sh, nadaj mu prawa do wykonania poleceniem chmod +x nazwa_skryptu.sh, a następnie uruchom poleceniem:
+Aby uruchomić którykolwiek ze skryptów, trzeba nadać mu prawa do wykonania poleceniem chmod +x nazwa_skryptu.sh, a następnie uruchomić poleceniem:
 ./nazwa_skryptu.sh
 
