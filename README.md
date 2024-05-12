@@ -22,7 +22,9 @@ Obsługa sygnałów (SIGQUIT): Obsługa sygnałów, np. dla wyświetlenia histor
 ## Uruchamianie projektu
 
 Projekt można skompilować i uruchomić przy użyciu standardowych narzędzi w środowisku Unix/Linux. Poniżej znajduje się przykład komend do kompilacji i uruchomienia:
+
 make
+
 ./my_shell
 
 ## Testowanie projektu
