@@ -1,4 +1,4 @@
-# Dokumentacja Projektu: My Shell
+# Dokumentacja Projektu My Shell
 # Opis projektu
 Projekt My Shell to prosty emulator powłoki systemowej (shell), który czyta polecenia ze standardowego wejścia (lub z pliku skryptu) i wykonuje je, korzystając z systemowego środowiska uruchomieniowego. Shell wykonuje polecenia przez wywołania systemowe z rodziny exec (np. execl, execlp, execvp), obsługuje przekierowania, potoki oraz inne podstawowe funkcjonalności powłoki.
 # Funkcjonalności
