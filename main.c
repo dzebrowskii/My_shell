@@ -75,7 +75,7 @@ int main() {
             // Najpierw sprawdź `touch`, potem `cd`
             if (!check_touch_command(args) && !check_cd_command(args)) {
                 execute_command(args, background);
-            }
+            }./
         }
     }
 
