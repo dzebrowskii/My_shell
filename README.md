@@ -1,1 +1,1 @@
-# Projekt_so
+# Prosta powłoka tekstowa (shell)
