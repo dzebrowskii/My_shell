@@ -1,7 +1,7 @@
 #!/home/dominik/CLionProjects/Projekt/my_shell
 ls
 ls -a
-echo "Wyświetlam aktualny katalog:"
+echo "Wyswietlam aktualny katalog:"
 pwd
-echo "Lista użytkowników:"
+echo "Lista uzytkowników:"
 who

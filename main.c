@@ -8,10 +8,10 @@
 
 #define MAX_LINE_LENGTH 1024
 
-void execute_command(char *args[], int background);
+void execute_command(char *args[], int background); //odpalanie w tle
 void execute_piped_commands(char *commands[], int num_commands);
 void append_command_to_history(const char *command);
-void sigquit_handler(int sig);
+void sigquit_handler(int sig); //historia
 int check_cd_command(char *args[]);
 int check_touch_command(char *args[]);
 
@@ -19,13 +19,13 @@ int main(int argc, char *argv[]) {
     char *line = NULL;
     size_t line_buf_size = 0;
     ssize_t line_size;
-    char *args[MAX_LINE_LENGTH / 2 + 1];
+    char *args[MAX_LINE_LENGTH / 2 + 1]; //przechowuje podzieloną na segmenty linię komend do dalszego przetwarzania
     int background;
-    int first_line = 1;
+    int first_line = 1; //flaga uzywana do pominiecia linii shebang w skryptach
 
-    signal(SIGQUIT, sigquit_handler);
+    signal(SIGQUIT, sigquit_handler); //obsluga sygnalu
 
-    FILE *input_stream = stdin;
+    FILE *input_stream = stdin; // wskaźnik input_stream na standardowe wejście
 
     // Obsługa uruchamiania skryptu jako argumentu programu
     if (argc > 1) {
@@ -47,19 +47,19 @@ int main(int argc, char *argv[]) {
         }
 
         if (line[line_size - 1] == '\n') {
-            line[line_size - 1] = '\0';
+            line[line_size - 1] = '\0'; // Usuwa znak nowej linii
         }
 
-        // Pomijanie pierwszej linii skryptu, jeśli jest to shebang
+        // pomijanie pierwszej linii skryptu jesli jest to shebang
         if (first_line && line[0] == '#' && line[1] == '!') {
             first_line = 0;
             continue;
         }
         first_line = 0;
 
-        append_command_to_history(line); // Zapisz polecenie do historii
+        append_command_to_history(line); // Zapis do historii
 
-        char *commands[MAX_LINE_LENGTH / 2 + 1];
+        char *commands[MAX_LINE_LENGTH / 2 + 1]; // Podzial na polecenia i argumenty
         int num_commands = 0;
         char *token = strtok(line, "|");
 
@@ -67,16 +67,16 @@ int main(int argc, char *argv[]) {
             commands[num_commands++] = token;
             token = strtok(NULL, "|");
         }
-
+        //wykonanie polecenia z potokami lub bez
         if (num_commands > 1) {
             execute_piped_commands(commands, num_commands);
         } else {
             int arg_count = 0;
-            token = strtok(line, " ");
+            token = strtok(line, " "); //podzial linii na słowa (tokeny)
             while (token != NULL) {
-                args[arg_count++] = token;
+                args[arg_count++] = token; //zczytywanie argumetow
                 token = strtok(NULL, " ");
-            }
+            };
             args[arg_count] = NULL;
 
             if (arg_count == 0) {
@@ -84,19 +84,19 @@ int main(int argc, char *argv[]) {
             }
 
             background = 0;
-            if (args[arg_count - 1] && strcmp(args[arg_count - 1], "&") == 0) {
+            if (args[arg_count - 1] && strcmp(args[arg_count - 1], "&") == 0) { //sprawdzamy czy ma byc w tle
                 background = 1;
                 args[--arg_count] = NULL;
             }
 
-            if (!check_touch_command(args) && !check_cd_command(args)) {
-                execute_command(args, background);
+            if (!check_touch_command(args) && !check_cd_command(args)) { //sprawdzamy czy cd i touch
+                execute_command(args, background); //jak nie to odpalamy w tle
             }
         }
     }
 
     if (input_stream != stdin) {
-        fclose(input_stream);  // Zamknij plik skryptu, jeśli był używany
+        fclose(input_stream);  // Zamknij plik skryptu jeśli był używany
     }
     free(line);
     return 0;
@@ -108,7 +108,7 @@ int check_cd_command(char *args[]) {
         if (args[1] == NULL) {
             fprintf(stderr, "cd: argument expected\n");
         } else {
-            if (chdir(args[1]) != 0) {
+            if (chdir(args[1]) != 0) { //zmienamy katalog
                 perror("cd");
             }
         }
@@ -117,31 +117,32 @@ int check_cd_command(char *args[]) {
     return 0;
 }
 
-void execute_command(char *args[], int background) {
-    int redirect_output = 0;
+void execute_command(char *args[], int background) { //uruchomienie polecen
+    int redirect_output = 0; // flaga z przekierowaniem
     char *output_file = NULL;
 
-    // Znajdź znak przekierowania i oddziel nazwę pliku
+    // szukamy znak przekierowania i oddzielamy nazwe pliku
     for (int i = 0; args[i] != NULL; i++) {
         if (strcmp(args[i], ">") == 0) {
-            args[i] = NULL; // Usuń '>' z argumentów
+            args[i] = NULL; // Usuwamy '>' z argumentów
             output_file = args[i + 1]; // Nazwa pliku jest następnym argumentem
             redirect_output = 1;
             break;
         }
     }
 
-    pid_t pid = fork();
+    pid_t pid = fork(); // Rozdziela biezacy proces na proces rodzica i proces potomny
     if (pid == 0) { // Proces dziecka
-        // Przekierowanie wyjścia, jeśli wymagane
+        // Przekierowanie wyjscia
         if (redirect_output) {
-            int fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            int fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644); // o_wronly - zapis o_trunc - plik do długości 0, jeżeli już istnieje
+            //0644 to prawa dostępu do pliku
             if (fd < 0) {
                 perror("open");
                 exit(EXIT_FAILURE);
             }
-            dup2(fd, STDOUT_FILENO);
-            close(fd);
+            dup2(fd, STDOUT_FILENO); //kopiuje deskryptor pliku fd do deskryptora pliku wyjscia standardowego
+            close(fd); // oryginalny deskryptor pliku
         }
 
         // Wykonanie polecenia
@@ -152,37 +153,35 @@ void execute_command(char *args[], int background) {
     } else if (pid > 0) { // Proces rodzica
         int status;
         if (!background) {
-            waitpid(pid, &status, 0); // Czekaj na zakończenie procesu dziecka, jeśli nie jest w tle
-            if (WIFEXITED(status)) {
-                printf("Kod powrotu: %d\n", WEXITSTATUS(status));
-            }
+            waitpid(pid, &status, 0); // Czekaj na zakończenie procesu dziecka jesli nie jest w tle
+
         }
     } else {
-        perror("fork"); // Nie udało się utworzyć procesu
+        perror("fork"); // Nie udalo się utworzyć procesu
     }
 }
 
 
-void execute_piped_commands(char *commands[], int num_commands) {
-    int num_pipes = num_commands - 1;
-    int pipe_fd[2 * num_pipes];
+void execute_piped_commands(char *commands[], int num_commands) { // potoki polecen
+    int num_pipes = num_commands - 1; //Oblicza liczbe potrzebnych potoków  ktora jest zawsze o jeden mniejsza niż liczba poleceń ponieważ potok łączy dwa procesy
+    int pipe_fd[2 * num_pipes]; // tworzy tablice do przechowywania deskryptorów plików dla potoków
 
-    // Tworzenie wszystkich potoków
+    // Tworzenie wszystkich potokow
     for (int i = 0; i < num_pipes; i++) {
-        if (pipe(pipe_fd + 2 * i) < 0) {
+        if (pipe(pipe_fd + 2 * i) < 0) { // 2 * i zapewnia że każda para deskryptorów jest unikalna dla danego potoku.
             perror("pipe");
             exit(EXIT_FAILURE);
         }
     }
 
     for (int i = 0; i < num_commands; i++) {
-        pid_t pid = fork();
+        pid_t pid = fork(); // Tworzy nowy proces
         if (pid == 0) { // Proces dziecka
-            if (i > 0) { // Nie pierwszy proces: podłącz do potoku z poprzednim procesem
-                dup2(pipe_fd[2 * (i - 1)], STDIN_FILENO);
+            if (i > 0) { // Nie pierwszy proces - podlacz do potoku z poprzednim procesem
+                dup2(pipe_fd[2 * (i - 1)], STDIN_FILENO); // sluzy do przekierowania standardowego wejścia procesu na wcześniej utworzony potok
             }
-            if (i < num_pipes) { // Nie ostatni proces: podłącz do potoku z następnym procesem
-                dup2(pipe_fd[2 * i + 1], STDOUT_FILENO);
+            if (i < num_pipes) { // Nie ostatni proces - podlacz do potoku z następnym procesem
+                dup2(pipe_fd[2 * i + 1], STDOUT_FILENO); // sluzy do przekierowania standardowego wejścia procesu na wcześniej utworzony potok
             }
 
             // Zamknij wszystkie deskryptory w potoku
@@ -190,17 +189,17 @@ void execute_piped_commands(char *commands[], int num_commands) {
                 close(pipe_fd[j]);
             }
 
-            // Podziel polecenie na argumenty i wykonaj je
-            char *args[MAX_LINE_LENGTH / 2 + 1];
+            // dzielimy polecenie na argumenty
+            char *args[MAX_LINE_LENGTH / 2 + 1]; // tablica na argumenty
             int arg_count = 0;
-            char *token = strtok(commands[i], " ");
+            char *token = strtok(commands[i], " "); //dzielimy argumenty
             while (token != NULL) {
                 args[arg_count++] = token;
-                token = strtok(NULL, " ");
+                token = strtok(NULL, " "); // pobiera kolejny token z tego samego stringu
             }
-            args[arg_count] = NULL;
+            args[arg_count] = NULL; //dajemy ostatnie miejsce na null
 
-            if (execvp(args[0], args) < 0) {
+            if (execvp(args[0], args) < 0) { // wywolanie funkcji execvp z pierwszym argumentem jako nazwa programu do wykonania
                 perror("execvp");
                 exit(EXIT_FAILURE);
             }
@@ -218,15 +217,15 @@ void execute_piped_commands(char *commands[], int num_commands) {
     }
 }
 
-void append_command_to_history(const char *command) {
-    const char *home_directory = getenv("HOME"); // Pobierz ścieżkę do katalogu domowego
+void append_command_to_history(const char *command) { // zapisywanie kazdego wykonanego polecenia do pliku historii
+    const char *home_directory = getenv("HOME"); // pobierz sciezke do katalogu domowego
     if (home_directory == NULL) {
         perror("getenv");
         exit(EXIT_FAILURE);
     }
 
     char history_file_path[256];
-    snprintf(history_file_path, sizeof(history_file_path), "%s/.my_shell_history", home_directory);
+    snprintf(history_file_path, sizeof(history_file_path), "%s/.my_shell_history", home_directory); // tworzy pelna sciezke do pliku historii
 
     FILE *file = fopen(history_file_path, "a"); // Otwórz plik historii do dopisywania
     if (file == NULL) {
@@ -234,11 +233,11 @@ void append_command_to_history(const char *command) {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(file, "%s\n", command); // Dopisz polecenie do pliku historii
+    fprintf(file, "%s\n", command); // dopisz polecenie do pliku historii
     fclose(file);
 }
 
-void sigquit_handler(int sig) {
+void sigquit_handler(int sig) { //obsługa sygnalu SIGQUIT
     const char *home_directory = getenv("HOME");
     if (home_directory == NULL) {
         perror("getenv");
@@ -246,7 +245,7 @@ void sigquit_handler(int sig) {
     }
 
     char history_file_path[256];
-    snprintf(history_file_path, sizeof(history_file_path), "%s/.my_shell_history", home_directory);
+    snprintf(history_file_path, sizeof(history_file_path), "%s/.my_shell_history", home_directory); // sciezka do pliku polecen
 
     printf("Historia poleceń:\n");
     FILE *file = fopen(history_file_path, "r");
@@ -258,7 +257,7 @@ void sigquit_handler(int sig) {
     char *line = NULL;
     size_t len = 0;
     ssize_t read;
-    while ((read = getline(&line, &len, file)) != -1) {
+    while ((read = getline(&line, &len, file)) != -1) { // czyta kazda linie z pliku aż do konca pliku
         printf("%s", line);
     }
     printf("> ");
@@ -267,21 +266,21 @@ void sigquit_handler(int sig) {
     fclose(file);
 }
 
-int check_touch_command(char *args[]) {
-    if (strcmp(args[0], "touch") == 0) {
-        if (args[1] == NULL) {
+int check_touch_command(char *args[]) { //obsluga touch
+    if (strcmp(args[0], "touch") == 0) { // sprawdzamy czy argumenten jest touch
+        if (args[1] == NULL) { // do touch jest potrzebny argument
             fprintf(stderr, "touch: argument expected\n");
         } else {
             for (int i = 1; args[i] != NULL; i++) {
-                int fd = open(args[i], O_WRONLY | O_CREAT, 0644);
+                int fd = open(args[i], O_WRONLY | O_CREAT, 0644); // O_WRONLY - otwarcie pliku tylko do zapisu, O_CREAT - jak nie ma pliczku to go tworzymy
                 if (fd < 0) {
                     perror("touch");
                 } else {
-                    close(fd);
+                    close(fd); // deskryptor pliku zamykamy
                 }
             }
         }
-        return 1; // Potwierdzenie, że polecenie zostało obsłużone
+        return 1; // potwierdzenie że polecenie zostalo obsluzone
     }
     return 0;
 }

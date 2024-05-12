@@ -1,6 +1,10 @@
+.
+..
 cmake-build-debug
 CMakeLists.txt
 files.txt
+.git
+.idea
 main.c
 Makefile
 many123.txt
