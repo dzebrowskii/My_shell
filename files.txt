@@ -1,0 +1,17 @@
+cmake-build-debug
+CMakeLists.txt
+files.txt
+main.c
+Makefile
+many.txt
+my_shell
+README.md
+script.sh
+test_background.sh
+test_basic_commands.sh
+test_cd_command.sh
+test_file_operations.sh
+testfile.txt
+test_history.sh
+test_pipes.sh
+test_redirection.sh
