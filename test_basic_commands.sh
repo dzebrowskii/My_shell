@@ -1,4 +1,4 @@
-#!/home/student/my_shell
+#!/home/dominik/CLionProjects/Projekt/my_shell
 ls
 ls -a
 echo "Wyświetlam aktualny katalog:"

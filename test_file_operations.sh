@@ -1,4 +1,4 @@
-#!/home/student/my_shell
+#!/home/dominik/CLionProjects/Projekt/my_shell
 echo "Tworzę nowy plik tekstowy"
 touch testfile.txt
 echo "Edytuję plik w nano (zamknij, aby kontynuować)"

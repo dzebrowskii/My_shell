@@ -15,71 +15,90 @@ void sigquit_handler(int sig);
 int check_cd_command(char *args[]);
 int check_touch_command(char *args[]);
 
-int main() {
+int main(int argc, char *argv[]) {
     char *line = NULL;
     size_t line_buf_size = 0;
     ssize_t line_size;
-    char *args[MAX_LINE_LENGTH / 2 + 1]; // Maksymalna liczba argumentów
+    char *args[MAX_LINE_LENGTH / 2 + 1];
     int background;
+    int first_line = 1;
 
     signal(SIGQUIT, sigquit_handler);
 
+    FILE *input_stream = stdin;
+
+    // Obsługa uruchamiania skryptu jako argumentu programu
+    if (argc > 1) {
+        input_stream = fopen(argv[1], "r");
+        if (!input_stream) {
+            fprintf(stderr, "Error opening script file: %s\n", argv[1]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
     while (1) {
-        printf("> ");
-        line_size = getline(&line, &line_buf_size, stdin);
+        if (input_stream == stdin) {
+            printf("> ");
+        }
+        line_size = getline(&line, &line_buf_size, input_stream);
 
         if (line_size <= 0) {
-            break; // Koniec pliku (EOF)
+            break; // Koniec pliku (EOF) lub błąd
         }
 
         if (line[line_size - 1] == '\n') {
             line[line_size - 1] = '\0';
         }
 
+        // Pomijanie pierwszej linii skryptu, jeśli jest to shebang
+        if (first_line && line[0] == '#' && line[1] == '!') {
+            first_line = 0;
+            continue;
+        }
+        first_line = 0;
+
         append_command_to_history(line); // Zapisz polecenie do historii
 
-        // Sprawdź, czy linia zawiera znak `|`
-        if (strchr(line, '|') != NULL) {
-            // Podziel linię na polecenia
-            char *commands[MAX_LINE_LENGTH / 2 + 1];
-            int num_commands = 0;
-            char *token = strtok(line, "|");
-            while (token != NULL) {
-                commands[num_commands++] = token;
-                token = strtok(NULL, "|");
-            }
+        char *commands[MAX_LINE_LENGTH / 2 + 1];
+        int num_commands = 0;
+        char *token = strtok(line, "|");
 
-            // Wykonaj potok poleceń
+        while (token != NULL) {
+            commands[num_commands++] = token;
+            token = strtok(NULL, "|");
+        }
+
+        if (num_commands > 1) {
             execute_piped_commands(commands, num_commands);
         } else {
-            // Podziel linię na słowa (argumenty)
             int arg_count = 0;
-            char *token = strtok(line, " ");
+            token = strtok(line, " ");
             while (token != NULL) {
                 args[arg_count++] = token;
                 token = strtok(NULL, " ");
             }
-            args[arg_count] = NULL; // Ostatni element musi być NULL dla execvp
+            args[arg_count] = NULL;
 
             if (arg_count == 0) {
                 continue; // Pusta linia
             }
 
-            // Sprawdź, czy ostatni argument to '&'
             background = 0;
-            if (strcmp(args[arg_count - 1], "&") == 0) {
+            if (args[arg_count - 1] && strcmp(args[arg_count - 1], "&") == 0) {
                 background = 1;
                 args[--arg_count] = NULL;
             }
 
-            // Najpierw sprawdź `touch`, potem `cd`
             if (!check_touch_command(args) && !check_cd_command(args)) {
                 execute_command(args, background);
-            }./
+            }
         }
     }
 
-    free(line); // Zwolnienie pamięci zaalokowanej przez getline
+    if (input_stream != stdin) {
+        fclose(input_stream);  // Zamknij plik skryptu, jeśli był używany
+    }
+    free(line);
     return 0;
 }
 
