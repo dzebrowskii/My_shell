@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
         if (input_stream == stdin) {
             printf("> ");
         }
-        line_size = getline(&line, &line_buf_size, input_stream);
+        line_size = getline(&line, &line_buf_size, input_stream); //zbieramy nasza linie kodu
 
         if (line_size <= 0) {
             break; // Koniec pliku (EOF) lub błąd
