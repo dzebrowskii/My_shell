@@ -150,7 +150,7 @@ void execute_command(char *args[], int background) { //uruchomienie polecen
             perror("execvp");
             exit(EXIT_FAILURE);
         }
-    } else if (pid > 0) { // Proces rodzica
+    } else if (pid > 0) { // Proces rodzicaa
         int status;
         if (!background) {
             waitpid(pid, &status, 0); // Czekaj na zakończenie procesu dziecka jesli nie jest w tle
